@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Habits</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Habits">
+<meta name="theme-color" content="#1f8a7d">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f6;--card:#fff;--ink:#14213d;--mute:#6b7a90;--line:#d9e1ea;--on:#1f8a7d;--on-ink:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1722;--card:#18232f;--ink:#e8eef5;--mute:#8fa0b5;--line:#2a3846;--on:#3fc1b0;--on-ink:#0f1722}}
+:root[data-theme="dark"]{--bg:#0f1722;--card:#18232f;--ink:#e8eef5;--mute:#8fa0b5;--line:#2a3846;--on:#3fc1b0;--on-ink:#0f1722}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+main{max-width:520px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:2rem;font-weight:800;margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--mute);margin:0 0 20px}
+.add{display:flex;gap:8px;margin-bottom:20px}
+input{flex:1;min-width:0;font:inherit;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+button{font:inherit;cursor:pointer}
+.addbtn{padding:0 18px;border:0;border-radius:10px;background:var(--on);color:var(--on-ink);font-weight:600}
+:focus-visible{outline:3px solid var(--on);outline-offset:2px}
+.habit{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.name{font-weight:600;font-size:1.1rem;overflow-wrap:anywhere}
+.streak{font-weight:800;font-size:1.3rem;color:var(--on);white-space:nowrap}
+.streak small{font-weight:400;font-size:.8rem;color:var(--mute);margin-left:3px}
+.days{display:flex;gap:6px;margin-top:12px}
+.day{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;color:var(--mute);font-size:.75rem;padding:0}
+.dot{width:100%;max-width:44px;aspect-ratio:1;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:800;color:var(--on-ink)}
+.day.done .dot{background:var(--on);border-color:var(--on)}
+.day.today{color:var(--ink);font-weight:600}
+.del{border:0;background:none;color:var(--mute);font-size:.8rem;margin-top:10px;padding:0}
+.empty{text-align:center;color:var(--mute);padding:32px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>Habits</h1>
+<p class="sub" id="sub"></p>
+<div class="add">
+<input id="name" maxlength="40" placeholder="New habit, like “Read 20 minutes”" aria-label="New habit name">
+<button class="addbtn" id="addBtn">Add habit</button>
+</div>
+<div id="list"></div>
+</main>
+<script>
+var KEY="habits-v1",habits=[];
+try{habits=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){habits=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(habits))}catch(e){}}
+function key(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function back(n){var d=new Date();d.setDate(d.getDate()-n);return d}
+function streak(h){var n=0,i=h.log[key(back(0))]?0:1;while(h.log[key(back(i))]){n++;i++}return n}
+function render(){
+var list=document.getElementById("list");list.innerHTML="";
+var todayDone=habits.filter(function(h){return h.log[key(back(0))]}).length;
+document.getElementById("sub").textContent=habits.length?todayDone+" of "+habits.length+" done today":"Track what you do every day.";
+if(!habits.length){var e=document.createElement("div");e.className="empty";e.textContent="No habits yet. Add one above to start your first streak.";list.appendChild(e);return}
+habits.forEach(function(h,idx){
+var c=document.createElement("div");c.className="habit";
+var top=document.createElement("div");top.className="top";
+var nm=document.createElement("span");nm.className="name";nm.textContent=h.name;
+var st=document.createElement("span");st.className="streak";var s=streak(h);st.innerHTML=s+"<small>"+(s===1?"day":"days")+"</small>";
+top.appendChild(nm);top.appendChild(st);c.appendChild(top);
+var row=document.createElement("div");row.className="days";
+for(var i=6;i>=0;i--){(function(i){
+var d=back(i),k=key(d),b=document.createElement("button");
+b.className="day"+(h.log[k]?" done":"")+(i===0?" today":"");
+b.setAttribute("aria-label",h.name+", "+d.toDateString()+(h.log[k]?", done":", not done"));
+b.setAttribute("aria-pressed",h.log[k]?"true":"false");
+var dot=document.createElement("span");dot.className="dot";dot.textContent=h.log[k]?"✓":"";
+var lb=document.createElement("span");lb.textContent=i===0?"Today":d.toLocaleDateString(undefined,{weekday:"short"});
+b.appendChild(dot);b.appendChild(lb);
+b.onclick=function(){if(h.log[k])delete h.log[k];else h.log[k]=1;save();render()};
+row.appendChild(b)})(i)}
+c.appendChild(row);
+var del=document.createElement("button");del.className="del";del.textContent="Delete habit";
+del.onclick=function(){if(confirm("Delete “"+h.name+"”?")){habits.splice(idx,1);save();render()}};
+c.appendChild(del);list.appendChild(c)})}
+function add(){var i=document.getElementById("name"),v=i.value.trim();if(!v)return;habits.push({name:v,log:{}});i.value="";save();render()}
+document.getElementById("addBtn").onclick=add;
+document.getElementById("name").addEventListener("keydown",function(e){if(e.key==="Enter")add()});
+render();
+</script>
+</body>
+</html>
